@@ -1,0 +1,71 @@
+{
+  "manifest_version": 3,
+  "name": "Asset Helper",
+  "version": "0.1.0",
+  "description": "FOFA / Hunter 网络资产采集与表格化展示工具，数据全程留在本地浏览器",
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://fofa.info/*",
+    "https://*.fofa.info/*",
+    "https://hunter.qianxin.com/*"
+  ],
+  "action": {
+    "default_title": "FOFA 资产采集",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://fofa.info/result*",
+        "https://*.fofa.info/result*"
+      ],
+      "js": [
+        "src/content/fofa-extractor-simple.js",
+        "src/content/overlay-injector.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://hunter.qianxin.com/*"
+      ],
+      "js": [
+        "src/content/hunter-extractor.js",
+        "src/content/overlay-injector.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/popup/index.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "options_ui": {
+    "open_in_tab": true,
+    "page": "src/popup/index.html"
+  }
+}

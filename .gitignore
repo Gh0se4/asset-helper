@@ -1,0 +1,23 @@
+node_modules
+dist
+*.log
+.DS_Store
+.vscode
+.idea
+*.crx
+*.pem
+# 研究资料（含真实页面快照与资产数据，不入库）
+research/
+
+# 开发过程产物（本地保留，不入库）
+CAPTURE_DATA.js
+DEBUG.js
+EMERGENCY_FIX.md
+FILES.md
+FINAL_FIX.md
+FIX_NOW.md
+FLOATING_WINDOW_FIX.md
+PROJECT_SUMMARY.md
+QUICK_START.md
+TROUBLESHOOTING.md
+public/icons/create_icons.sh

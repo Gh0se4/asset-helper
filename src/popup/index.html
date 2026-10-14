@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asset Helper</title>
+
+  <!-- Tabulator 样式由 app.js 打包引入（插件 CSP 禁止加载外部 CDN） -->
+
+  <style>
+    /* ========================================
+       设计令牌
+       ======================================== */
+    :root {
+      --c-primary: #4f46e5;
+      --c-primary-hover: #4338ca;
+      --c-primary-soft: #eef2ff;
+      --c-danger: #ef4444;
+      --c-danger-soft: #fef2f2;
+      --c-success: #10b981;
+      --c-bg: #ffffff;
+      --c-bg-subtle: #f8fafc;
+      --c-bg-muted: #f1f5f9;
+      --c-border: #e2e8f0;
+      --c-border-strong: #cbd5e1;
+      --c-text: #0f172a;
+      --c-text-secondary: #475569;
+      --c-text-muted: #94a3b8;
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 10px;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+      --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+      --font-mono: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+                   'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      font-size: 13px;
+      color: var(--c-text);
+      background: var(--c-bg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ========================================
+       顶部控制栏
+       ======================================== */
+    .header {
+      padding: 8px 12px;
+      background: var(--c-bg);
+      border-bottom: 1px solid var(--c-border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .controls-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .controls-right {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    /* ---- 模式开关 ---- */
+    .switch-container {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 10px 4px 6px;
+      border-radius: 999px;
+      background: var(--c-bg-muted);
+      transition: background 0.2s;
+      user-select: none;
+    }
+
+    .switch-container:has(input:checked) {
+      background: var(--c-primary-soft);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 34px;
+      height: 19px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: var(--c-border-strong);
+      transition: background 0.2s;
+      border-radius: 999px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 15px;
+      width: 15px;
+      left: 2px;
+      top: 2px;
+      background-color: #fff;
+      transition: transform 0.2s;
+      border-radius: 50%;
+      box-shadow: var(--shadow-sm);
+    }
+
+    input:checked + .slider {
+      background-color: var(--c-primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(15px);
+    }
+
+    .switch-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--c-text-secondary);
+      cursor: pointer;
+    }
+
+    .switch-container:has(input:checked) .switch-label {
+      color: var(--c-primary);
+      font-weight: 600;
+    }
+
+    /* ---- 统计胶囊 ---- */
+    .stats {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .stat-item {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 3px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: var(--c-bg-muted);
+      font-size: 11px;
+      color: var(--c-text-muted);
+      white-space: nowrap;
+    }
+
+    .stat-value {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--c-text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-item.is-active .stat-value {
+      color: var(--c-primary);
+    }
+
+    /* ---- 按钮 ---- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border: 1px solid var(--c-border);
+      background: var(--c-bg);
+      color: var(--c-text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      line-height: 1.4;
+    }
+
+    .btn:hover {
+      background: var(--c-bg-muted);
+      border-color: var(--c-border-strong);
+      color: var(--c-text);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: var(--c-primary);
+      border-color: var(--c-primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--c-primary-hover);
+      border-color: var(--c-primary-hover);
+      color: #fff;
+    }
+
+    .btn-icon {
+      padding: 5px 7px;
+      color: var(--c-text-muted);
+    }
+
+    .btn-icon:hover {
+      color: var(--c-danger);
+      border-color: var(--c-danger);
+      background: var(--c-danger-soft);
+    }
+
+    .btn-small {
+      padding: 3px 8px;
+      font-size: 11px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ========================================
+       主内容区域
+       ======================================== */
+    .main-content {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .table-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+      position: relative;
+    }
+
+    #asset-table {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ========================================
+       暂存区
+       ======================================== */
+    .stash-panel {
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      background: var(--c-bg-subtle);
+      border-left: 1px solid var(--c-border);
+      overflow: hidden;
+      transition: width 0.18s ease;
+      flex-shrink: 0;
+    }
+
+    .stash-panel.collapsed {
+      width: 38px;
+      cursor: pointer;
+    }
+
+    .stash-header {
+      padding: 7px 10px;
+      background: var(--c-bg-subtle);
+      border-bottom: 1px solid var(--c-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      min-height: 36px;
+    }
+
+    .stash-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--c-text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.2px;
+    }
+
+    .stash-count {
+      font-size: 10px;
+      background: var(--c-primary);
+      color: #fff;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    .stash-count.is-empty {
+      background: var(--c-border-strong);
+    }
+
+    .stash-controls {
+      display: flex;
+      gap: 4px;
+    }
+
+    .stash-toggle-btn {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-sm);
+      background: var(--c-bg);
+      color: var(--c-text-muted);
+      font-size: 9px;
+      cursor: pointer;
+      transition: all 0.15s;
+      line-height: 1;
+    }
+
+    .stash-toggle-btn:hover {
+      border-color: var(--c-border-strong);
+      color: var(--c-text);
+      background: var(--c-bg-muted);
+    }
+
+    /* 折叠态：竖条 */
+    .stash-panel.collapsed .stash-header {
+      flex-direction: column;
+      height: 100%;
+      justify-content: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: none;
+    }
+
+    .stash-panel.collapsed .stash-header:hover {
+      background: var(--c-bg-muted);
+    }
+
+    .stash-panel.collapsed .stash-title {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stash-panel.collapsed .stash-label {
+      writing-mode: vertical-rl;
+      letter-spacing: 3px;
+      font-weight: 500;
+      color: var(--c-text-muted);
+      font-size: 11px;
+    }
+
+    .stash-panel.collapsed .stash-count {
+      font-size: 10px;
+      padding: 1px 4px;
+    }
+
+    .stash-textarea {
+      flex: 1;
+      width: 100%;
+      padding: 9px 11px;
+      border: none;
+      background: var(--c-bg);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      line-height: 1.7;
+      color: var(--c-text);
+      resize: none;
+      outline: none;
+    }
+
+    .stash-textarea::placeholder {
+      color: var(--c-text-muted);
+      line-height: 1.6;
+    }
+
+    .stash-panel.collapsed .stash-textarea,
+    .stash-panel.collapsed .stash-footer {
+      display: none;
+    }
+
+    .stash-footer {
+      padding: 7px 10px;
+      background: var(--c-bg-subtle);
+      border-top: 1px solid var(--c-border);
+      display: flex;
+      gap: 5px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    /* ========================================
+       Tabulator 紧凑样式
+       ======================================== */
+    .tabulator {
+      font-size: 12px;
+      border: none !important;
+      background: var(--c-bg);
+    }
+
+    .tabulator-header {
+      background: var(--c-bg-subtle);
+      border-bottom: 1px solid var(--c-border);
+      color: var(--c-text-secondary);
+    }
+
+    .tabulator-col {
+      background: var(--c-bg-subtle);
+      border-right: 1px solid var(--c-border);
+    }
+
+    .tabulator-col-content {
+      padding: 3px 6px;
+    }
+
+    .tabulator-col-title {
+      font-weight: 600;
+      color: var(--c-text-secondary);
+      font-size: 11.5px;
+    }
+
+    .tabulator-row {
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .tabulator-row.tabulator-row-even {
+      background: #fcfdfe;
+    }
+
+    .tabulator-row:hover {
+      background: var(--c-primary-soft) !important;
+    }
+
+    .tabulator-row .tabulator-cell {
+      border-right: 1px solid #f1f5f9;
+      padding: 2px 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--c-text);
+    }
+
+    .tabulator-row .tabulator-cell a.cell-link {
+      color: var(--c-primary);
+      text-decoration: none;
+    }
+
+    .tabulator-row .tabulator-cell a.cell-link:hover {
+      text-decoration: underline;
+    }
+
+    /* 列头快捷角标（加=追加 / 覆=覆盖暂存区） */
+    .col-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .col-hdr-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .col-hdr-actions {
+      display: flex;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .col-badge {
+      width: 15px;
+      height: 15px;
+      padding: 0;
+      border: 1px solid var(--c-border-strong);
+      border-radius: 3px;
+      background: var(--c-bg);
+      color: var(--c-text-muted);
+      font-size: 9px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+      transition: all 0.12s;
+    }
+
+    .col-badge:hover {
+      background: var(--c-primary);
+      border-color: var(--c-primary);
+      color: #fff;
+    }
+
+    .col-badge-replace:hover {
+      background: var(--c-danger);
+      border-color: var(--c-danger);
+    }
+
+    /* ========================================
+       空状态
+       ======================================== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--c-text-muted);
+      text-align: center;
+      padding: 40px;
+    }
+
+    .empty-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--c-primary-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 14px;
+    }
+
+    .empty-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--c-text-secondary);
+    }
+
+    .empty-desc {
+      font-size: 12px;
+      line-height: 1.7;
+      max-width: 360px;
+      color: var(--c-text-muted);
+    }
+
+    .empty-desc kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      border: 1px solid var(--c-border);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      background: var(--c-bg-subtle);
+      font-family: inherit;
+      font-size: 11px;
+      color: var(--c-text-secondary);
+    }
+
+    /* ========================================
+       Toast 通知
+       ======================================== */
+    .toast-container {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      min-width: 220px;
+      max-width: 360px;
+      padding: 10px 13px;
+      background: var(--c-text);
+      color: #fff;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 12px;
+      animation: toastIn 0.25s cubic-bezier(0.21, 1.02, 0.73, 1);
+    }
+
+    .toast-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+      font-weight: 700;
+    }
+
+    .toast-success .toast-icon { background: var(--c-success); }
+    .toast-error .toast-icon { background: var(--c-danger); }
+    .toast-info .toast-icon { background: var(--c-primary); }
+
+    .toast-message {
+      flex: 1;
+      line-height: 1.45;
+    }
+
+    @keyframes toastIn {
+      from { transform: translateY(-8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes toastOut {
+      from { transform: translateY(0); opacity: 1; }
+      to { transform: translateY(-8px); opacity: 0; }
+    }
+
+    .toast.hiding {
+      animation: toastOut 0.2s ease-in forwards;
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部控制栏 -->
+  <div class="header">
+    <div class="controls-row">
+      <div class="controls-left">
+        <!-- 累积模式开关 -->
+        <div class="switch-container">
+          <label class="switch">
+            <input type="checkbox" id="accumulateMode">
+            <span class="slider"></span>
+          </label>
+          <label for="accumulateMode" class="switch-label">累积模式</label>
+        </div>
+
+        <!-- 统计胶囊 -->
+        <div class="stats">
+          <span class="stat-item" id="statRows">
+            <span class="stat-value" id="rowCount">0</span>
+            <span>行</span>
+          </span>
+          <span class="stat-item" id="statPages">
+            <span class="stat-value" id="pageCount">0</span>
+            <span>页</span>
+          </span>
+          <span class="stat-item" id="statIPs">
+            <span class="stat-value" id="uniqueIPs">0</span>
+            <span>IP</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="controls-right">
+        <button class="btn" id="exportCSV" title="导出为 CSV 文件">CSV</button>
+        <button class="btn" id="exportJSON" title="导出为 JSON 文件">JSON</button>
+        <button class="btn btn-icon" id="clearBtn" title="清空全部数据">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主内容区域 -->
+  <div class="main-content">
+    <!-- 表格面板 -->
+    <div class="table-panel">
+      <div id="asset-table"></div>
+
+      <!-- 空状态 -->
+      <div class="empty-state" id="emptyState" style="display: none;">
+        <div class="empty-icon">🛰️</div>
+        <div class="empty-title">等待采集数据</div>
+        <div class="empty-desc">
+          在 FOFA 或 Hunter 的结果页面浏览资产，数据将自动出现在这里。
+          <br>
+          开启 <b>累积模式</b> 可保留翻页时的历史数据。
+        </div>
+      </div>
+    </div>
+
+    <!-- 暂存区面板 -->
+    <div class="stash-panel" id="stashPanel">
+      <div class="stash-header">
+        <div class="stash-title">
+          <span class="stash-icon">📋</span>
+          <span class="stash-label">暂存区</span>
+          <span class="stash-count is-empty" id="stashCount">0</span>
+        </div>
+        <div class="stash-controls">
+          <button class="stash-toggle-btn" id="toggleStash" title="收起暂存区">◀</button>
+        </div>
+      </div>
+
+      <textarea
+        class="stash-textarea"
+        id="stashTextarea"
+        spellcheck="false"
+        placeholder="暂存区为空&#10;&#10;· 点击列头「加」追加本列&#10;· 点击列头「覆」覆盖暂存区&#10;· 每行一条数据，可直接编辑&#10;· 内容自动保存，刷新不丢失"></textarea>
+
+      <div class="stash-footer">
+        <button class="btn btn-small" id="dedupeStash" title="去除重复行">去重</button>
+        <button class="btn btn-small" id="copyStash" title="复制全部内容">复制</button>
+        <button class="btn btn-small" id="exportStash" title="导出为文本文件">导出</button>
+        <button class="btn btn-small btn-icon" id="clearStash" title="清空暂存区" style="margin-left:auto;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- 主脚本 -->
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

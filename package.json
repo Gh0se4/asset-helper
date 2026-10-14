@@ -1,0 +1,22 @@
+{
+  "name": "asset-helper",
+  "version": "0.1.0",
+  "description": "FOFA / Hunter 网络资产采集与表格化展示 Chrome 扩展",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "tabulator-tables": "^6.2.0",
+    "dexie": "^4.0.0"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.0.0-beta.23",
+    "@types/chrome": "^0.0.268",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0"
+  }
+}
